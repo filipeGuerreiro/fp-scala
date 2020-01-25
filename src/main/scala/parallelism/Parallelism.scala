@@ -8,6 +8,8 @@ import java.util.concurrent.Callable
 object Par {
     type Par[A] = ExecutorService => Future[A]
 
+    def run[A](s: ExecutorService)(a: Par[A]): Future[A] = a(s)
+
     def unit[A](a: A): Par[A] = (es: ExecutorService) => UnitFuture(a)
 
     private case class UnitFuture[A](get: A) extends Future[A] {
@@ -31,4 +33,25 @@ object Par {
 
     def lazyUnit[A](a: => A): Par[A] = fork(unit(a))
 
+    def asyncF[A,B](f: A => B): A => Par[B] =
+        a => lazyUnit(f(a))
+
+    def map[A,B](pa: Par[A])(f: A => B): Par[B] = 
+        map2(pa, unit())((a,_) => f(a))
+    
+    def sortPar(pars: Par[List[Int]]) =
+        map(pars)(_.sorted)
+    
+    def sequence[A](ps: List[Par[A]]): Par[List[A]] =
+        ps.foldRight[Par[List[A]]](unit(List()))((p, acc) => map2(p, acc)(_ :: _))
+
+    def parMap[A,B](ps: List[A])(f: A => B): Par[List[B]] = fork {
+        val fbs =  ps.map(asyncF(f))
+        sequence(fbs)
+    }
+    
+    def parFilter[A](as: List[A])(f: A => Boolean): Par[List[A]] = {
+        val fas = as.map(asyncF((a: A) => if (f(a)) List(a) else List()))
+        map(sequence(fas))(_.flatten)
+    }
 }
