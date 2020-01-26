@@ -54,4 +54,10 @@ object Par {
         val fas = as.map(asyncF((a: A) => if (f(a)) List(a) else List()))
         map(sequence(fas))(_.flatten)
     }
+
+    def choiceN[A](n: Par[Int])(choices: List[Par[A]]): Par[A] =
+        es => {
+            val ind = run(es)(n).get()
+            run(es)(choices(ind))
+        }
 }
