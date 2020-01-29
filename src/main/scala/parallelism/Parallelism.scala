@@ -74,8 +74,17 @@ object Par {
         }
 
     def choiceN2[A](n: Par[Int])(choices: List[Par[A]]): Par[A] =
+        chooser(n)(i => choices(i))
+
+    def choice2[A](p: Par[Boolean])(t: Par[A], f: Par[A]): Par[A] =
+        chooser(p)(i => if (i) t else f)
+
+    def flatMap[A,B](p: Par[A])(choices: A => Par[B]): Par[B] =
+        chooser(p)(choices)
+
+    def join[A](a: Par[Par[A]]): Par[A] =
         es => {
-            val ind = run(es)(n).get()
-            run(es)(chooser[Int, A](n)(ind => choices(ind)))
+            val i = run(es)(a).get()
+            run(es)(i)
         }
 }
