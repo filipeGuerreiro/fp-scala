@@ -60,4 +60,10 @@ object Par {
             val ind = run(es)(n).get()
             run(es)(choices(ind))
         }
+
+    def choiceMap[K,V](key: Par[K])(choices: Map[K,Par[V]]): Par[V] =
+        es => {
+            val ind = run(es)(key).get()
+            run(es)(choices.get(ind).get)
+        }
 }
