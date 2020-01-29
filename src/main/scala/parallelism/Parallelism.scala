@@ -66,4 +66,16 @@ object Par {
             val ind = run(es)(key).get()
             run(es)(choices.get(ind).get)
         }
+
+    def chooser[A,B](pa: Par[A])(choices: A => Par[B]): Par[B] =
+        es => {
+            val ind = run(es)(pa).get()
+            run(es)(choices(ind))
+        }
+
+    def choiceN2[A](n: Par[Int])(choices: List[Par[A]]): Par[A] =
+        es => {
+            val ind = run(es)(n).get()
+            run(es)(chooser[Int, A](n)(ind => choices(ind)))
+        }
 }
