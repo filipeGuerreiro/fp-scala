@@ -4,11 +4,11 @@ import state.State
 import state.RNG
 
 trait Prop {
-    def check: Either[(FailedCase, SuccessCount), SuccessCount]
+    // def check: Either[(FailedCase, SuccessCount), SuccessCount]
 
-    def &&(p: Prop): Prop = {
-        Prop(this.check && p.check)
-    }
+    // def &&(p: Prop): Prop = {
+    //     Prop(this.check && p.check)
+    // }
 }
 
 object Prop {
@@ -16,7 +16,14 @@ object Prop {
     type FailedCase = String
 }
 
-case class Gen[A](sample: State[RNG,A])
+case class Gen[+A](sample: State[RNG,A]) {
+
+    def flatMap[B](f: A => Gen[B]): Gen[B] =
+        Gen(sample.flatMap(a => f(a).sample))
+
+    def listOfN(size: Gen[Int]): Gen[List[A]] =
+        size.flatMap(n => Gen.listOfN(n, this))
+}
 
 object Gen {
 
@@ -26,9 +33,10 @@ object Gen {
     def boolean: Gen[Boolean] =
         Gen(State(RNG.boolean))
 
-    def listOfN[A](n: Int, a: Gen[A]): Gen[List[A]] = 
+    def listOfN[A](n: Int, a: Gen[A]): Gen[List[A]] =
         Gen(State.sequence(List.fill(n)(a.sample)))
     
+
     def forAll[A](a: Gen[A])(f: A => Boolean): Prop =
         return null
 
