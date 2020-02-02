@@ -36,6 +36,8 @@ object Gen {
     def listOfN[A](n: Int, a: Gen[A]): Gen[List[A]] =
         Gen(State.sequence(List.fill(n)(a.sample)))
     
+    def union[A](g1: Gen[A], g2: Gen[A]): Gen[A] =
+        boolean.flatMap(b => if (b) g1 else g2)
 
     def forAll[A](a: Gen[A])(f: A => Boolean): Prop =
         return null
