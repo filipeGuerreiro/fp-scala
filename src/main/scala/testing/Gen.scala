@@ -2,8 +2,10 @@ package testing
 
 import state.State
 import state.RNG
+import Gen._
+import Prop._
 
-case class Prop(run: (Prop.TestCases,RNG) => Prop.Result) {
+case class Prop(run: (TestCases,RNG) => Result) {
     // def check: Either[(FailedCase, SuccessCount), SuccessCount]
 
     // def &&(p: Prop): Prop = {
@@ -24,8 +26,8 @@ object Prop {
         def isFalsified: Boolean = false
     }
 
-    case class Falsified(failure: Prop.FailedCase,
-                         successes: Prop.SuccessCount) extends Result {
+    case class Falsified(failure: FailedCase,
+                         successes: SuccessCount) extends Result {
         def isFalsified: Boolean = true
     }
 }
@@ -61,9 +63,9 @@ object Gen {
     def forAll[A](a: Gen[A])(f: A => Boolean): Prop = Prop {
         (n,rng) => randomStream(a)(rng).zip(Stream.from(0)).take(n).map {
             case (a, i) => try {
-                if (f(a)) Prop.Passed else Prop.Falsified(a.toString, i)
-            } catch { case e: Exception => Prop.Falsified(buildMsg(a, e), i) }
-        }.find(_.isFalsified).getOrElse(Prop.Passed)
+                if (f(a)) Passed else Falsified(a.toString, i)
+            } catch { case e: Exception => Falsified(buildMsg(a, e), i) }
+        }.find(_.isFalsified).getOrElse(Passed)
     }
 
     def randomStream[A](g: Gen[A])(rng: RNG): Stream[A] =
