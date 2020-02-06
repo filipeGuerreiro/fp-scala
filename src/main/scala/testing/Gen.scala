@@ -3,7 +3,7 @@ package testing
 import state.State
 import state.RNG
 
-case class Prop(run: (Prop.TestCases,RNG) => Result) {
+case class Prop(run: (Prop.TestCases,RNG) => Prop.Result) {
     // def check: Either[(FailedCase, SuccessCount), SuccessCount]
 
     // def &&(p: Prop): Prop = {
@@ -13,22 +13,21 @@ case class Prop(run: (Prop.TestCases,RNG) => Result) {
 
 object Prop {
     type TestCases = Int
-    type Result = Option[(FailedCase,SuccessCount)]
     type SuccessCount = Int
     type FailedCase = String
-}
 
-sealed trait Result {
-    def isFalsified: Boolean
-}
+    sealed trait Result {
+        def isFalsified: Boolean
+    }
 
-case object Passed extends Result {
-    def isFalsified: Boolean = false
-}
+    case object Passed extends Result {
+        def isFalsified: Boolean = false
+    }
 
-case class Falsified(failure: Prop.FailedCase,
-                     successes: Prop.SuccessCount) extends Result {
-    def isFalsified: Boolean = true
+    case class Falsified(failure: Prop.FailedCase,
+                         successes: Prop.SuccessCount) extends Result {
+        def isFalsified: Boolean = true
+    }
 }
 
 case class Gen[+A](sample: State[RNG,A]) {
@@ -62,9 +61,9 @@ object Gen {
     def forAll[A](a: Gen[A])(f: A => Boolean): Prop = Prop {
         (n,rng) => randomStream(a)(rng).zip(Stream.from(0)).take(n).map {
             case (a, i) => try {
-                if (f(a)) Passed else Falsified(a.toString, i)
-            } catch { case e: Exception => Falsified(buildMsg(a, e), i) }
-        }.find(_.isFalsified).getOrElse(Passed)
+                if (f(a)) Prop.Passed else Prop.Falsified(a.toString, i)
+            } catch { case e: Exception => Prop.Falsified(buildMsg(a, e), i) }
+        }.find(_.isFalsified).getOrElse(Prop.Passed)
     }
 
     def randomStream[A](g: Gen[A])(rng: RNG): Stream[A] =
