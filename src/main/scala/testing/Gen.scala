@@ -8,9 +8,19 @@ import Prop._
 case class Prop(run: (TestCases,RNG) => Result) {
     // def check: Either[(FailedCase, SuccessCount), SuccessCount]
 
-    // def &&(p: Prop): Prop = {
-    //     Prop(this.check && p.check)
-    // }
+    def &&(p: Prop) = Prop {
+        (cases, rng) => run(cases, rng) match {
+            case Passed => p.run(cases, rng)
+            case x => x
+        }
+    }
+
+    def ||(p: Prop) = Prop {
+        (cases, rng) => run(cases, rng) match {
+            case Falsified(_,_) => p.run(cases, rng)
+            case x => x
+        }
+    }
 }
 
 object Prop {
