@@ -49,6 +49,9 @@ case class Gen[+A](sample: State[RNG,A]) {
 
     def listOfN(size: Gen[Int]): Gen[List[A]] =
         size.flatMap(n => Gen.listOfN(n, this))
+
+    def unsized: SGen[A] =
+        SGen(_ => this)
 }
 
 object Gen {
@@ -89,5 +92,9 @@ object Gen {
     def choose(start: Int, stopExclusive: Int): Gen[Int] = {
         Gen(State(RNG.nonNegativeInt).map(n => start + n % (stopExclusive - start)))
     }
+
+}
+
+case class SGen[+A](forSize: Int => Gen[A]) {
 
 }
