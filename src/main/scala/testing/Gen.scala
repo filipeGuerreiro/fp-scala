@@ -52,6 +52,9 @@ case class Gen[+A](sample: State[RNG,A]) {
 
     def unsized: SGen[A] =
         SGen(_ => this)
+
+    def listOf: SGen[List[A]] = Gen.listOf(this)
+    def listOf1: SGen[List[A]] = Gen.listOf1(this)
 }
 
 object Gen {
@@ -93,6 +96,18 @@ object Gen {
         Gen(State(RNG.nonNegativeInt).map(n => start + n % (stopExclusive - start)))
     }
 
+    def listOf[A](g: Gen[A]): SGen[List[A]] =
+        SGen(n => listOfN(n, g))
+
+    def listOf1[A](g: Gen[A]): SGen[List[A]] =
+        SGen(_ => listOfN(1, g))
+
+    val smallInt = Gen.choose(-10,10)
+    val maxProp = forAll(listOf(smallInt)) { l =>
+        val max = l.max
+        !l.exists(_ > max)
+    }
+
 }
 
 case class SGen[+A](forSize: Int => Gen[A]) {
@@ -103,4 +118,5 @@ object SGen {
 
     def listOf[A](g: Gen[A]): SGen[List[A]] =
         SGen(n => listOfN(n, g))
+
 }
