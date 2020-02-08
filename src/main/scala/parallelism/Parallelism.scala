@@ -45,7 +45,15 @@ object Par {
     def sequence[A](ps: List[Par[A]]): Par[List[A]] =
         ps.foldRight[Par[List[A]]](unit(List()))((p, acc) => map2(p, acc)(_ :: _))
 
+    def sequence[A](ps: IndexedSeq[Par[A]]): Par[List[A]] =
+        ps.foldRight[Par[List[A]]](unit(List()))((p, acc) => map2(p, acc)(_ :: _))
+
     def parMap[A,B](ps: List[A])(f: A => B): Par[List[B]] = fork {
+        val fbs =  ps.map(asyncF(f))
+        sequence(fbs)
+    }
+
+    def parMap[A,B](ps: IndexedSeq[A])(f: A => B): Par[List[B]] = fork {
         val fbs =  ps.map(asyncF(f))
         sequence(fbs)
     }
