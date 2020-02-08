@@ -103,10 +103,10 @@ object Gen {
         SGen(_ => listOfN(1, g))
 
     val smallInt = Gen.choose(-10,10)
-    val maxProp = forAll(listOf(smallInt)) { l =>
-        val max = l.max
-        !l.exists(_ > max)
-    }
+//    val maxProp = forAll(listOf(smallInt)) { l =>
+//        val max = l.max
+//        !l.exists(_ > max)
+//    }
 
 }
 
