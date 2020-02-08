@@ -41,4 +41,10 @@ object Monoid {
         def op(a1: Option[A], a2: Option[A]) = a1.orElse(a2)
         def zero: Option[A] = None
     }
+
+    def endoMonoid[A] = new Monoid[A => A] {
+        def op(a1: A => A, a2: A => A) = a1 compose a2
+        def zero = a => a
+    }
+
 }
