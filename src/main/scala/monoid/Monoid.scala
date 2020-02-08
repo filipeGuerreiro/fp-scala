@@ -53,4 +53,15 @@ object Monoid {
     def foldRight[A, B](as: List[A])(z: B)(f: (A, B) => B): B =
         foldMap(as, endoMonoid[B])(f.curried)(z)
 
+    def foldMapV[A,B](v: IndexedSeq[A], m: Monoid[B])(f: A => B): B =
+        v match {
+            case s if (s.length == 0) => m.zero
+            case s if (s.length == 1) => f(s(0))
+            case _ => {
+                val mid = v.length / 2
+                val (v1,v2) = v.splitAt(mid)
+                m.op(foldMapV(v1, m)(f), foldMapV(v2, m)(f))
+            }
+        }
+
 }
