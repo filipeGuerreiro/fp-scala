@@ -77,4 +77,18 @@ object Monoid {
     //         foldMapV(bs, par(m))(b => Par.lazyUnit(b))
     //     }
 
+    sealed trait WC
+    case class Stub(chars: String) extends WC
+    case class Part(lStub: String, words: Int, rStub: String) extends WC
+
+    val wcMonoid = new Monoid[WC] {
+        def op(a1: WC, a2: WC): WC = (a1, a2) match {
+            case (Stub(val1), Stub(val2)) => Stub(val1 + val2)
+            case (Stub(val1), Part(l, w, r)) => Part(val1 + l, w, r)
+            case (Part(l, w, r), Stub(val2)) => Part(l, w, r + val2)
+            case (Part(l1, w1, r1), Part(l2, w2, r2)) => Part(l1, w1 + (if ((r1 + l2).isEmpty) 0 else 1) + w2, r2)
+        }
+        def zero = Stub("")
+    }
+
 }
