@@ -2,6 +2,8 @@ package monoid
 
 import parallelism.Par
 import parallelism.Par._
+import monoid.Monoid.Stub
+import monoid.Monoid.Part
 
 trait Monoid[A] {
     def op(a1: A, a2: A): A
@@ -89,6 +91,16 @@ object Monoid {
             case (Part(l1, w1, r1), Part(l2, w2, r2)) => Part(l1, w1 + (if ((r1 + l2).isEmpty) 0 else 1) + w2, r2)
         }
         def zero = Stub("")
+    }
+
+    def count(s: String): Int = {
+        foldMapV(s.toIndexedSeq, wcMonoid)(c => c match {
+            case ' ' => Part("", 0, "")
+            case a => Stub(a.toString())
+        }) match {
+            case Stub(chars) => chars.length min 1
+            case Part(lStub, words, rStub) => lStub.length min 1 + words + rStub.length min 1
+        }
     }
 
 }
