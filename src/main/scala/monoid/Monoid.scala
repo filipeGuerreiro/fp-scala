@@ -52,11 +52,17 @@ object Monoid {
     def zero = a => a
   }
 
-  def productMonoid[A,B](a: Monoid[A], b: Monoid[B]): Monoid[(A, B)] =
-    new Monoid[(A,B)] {
-        override def op(a1: (A, B), a2: (A, B)): (A, B) = (a.op(a1._1, a2._1), b.op(a1._2, a2._2))
-        override def zero: (A, B) = (a.zero, b.zero)
+  def productMonoid[A, B](a: Monoid[A], b: Monoid[B]): Monoid[(A, B)] =
+    new Monoid[(A, B)] {
+      override def op(a1: (A, B), a2: (A, B)): (A, B) =
+        (a.op(a1._1, a2._1), b.op(a1._2, a2._2))
+      override def zero: (A, B) = (a.zero, b.zero)
     }
+
+  def functionMonoid[A, B](b: Monoid[B]): Monoid[A => B] = new Monoid[A => B] {
+    override def op(a1: A => B, a2: A => B): A => B = a => b.op(a1(a), a2(a))
+    override def zero: A => B = a => b.zero
+  }
 
   def foldMap[A, B](as: List[A], m: Monoid[B])(f: A => B): B =
     as.foldLeft(m.zero)((b, a) => m.op(b, f(a)))
@@ -74,6 +80,19 @@ object Monoid {
         m.op(foldMapV(v1, m)(f), foldMapV(v2, m)(f))
       }
     }
+
+  def mapMergeMonoid[K,V](V: Monoid[V]): Monoid[Map[K, V]] =
+    new Monoid[Map[K, V]] {
+      def zero = Map[K,V]()
+      def op(a: Map[K, V], b: Map[K, V]) =
+        (a.keySet ++ b.keySet).foldLeft(zero) { (acc,k) =>
+          acc.updated(k, V.op(a.getOrElse(k, V.zero),
+                              b.getOrElse(k, V.zero)))
+        }
+    }
+
+  def bag[A](as: IndexedSeq[A]): Map[A, Int] =
+    foldMapV(as, mapMergeMonoid[A, Int](intAddition))((a: A) => Map(a -> 1))
 
   def par[A](m: Monoid[A]): Monoid[Par[A]] = new Monoid[Par[A]] {
     def op(a1: Par[A], a2: Par[A]): Par[A] = Par.map2(a1, a2)(m.op)
