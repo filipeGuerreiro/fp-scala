@@ -52,7 +52,11 @@ object Monoid {
     def zero = a => a
   }
 
-  def productMonoid[A,B](A: Monoid[A], B: Monoid[B]): Monoid[(A, B)] = ???
+  def productMonoid[A,B](a: Monoid[A], b: Monoid[B]): Monoid[(A, B)] =
+    new Monoid[(A,B)] {
+        override def op(a1: (A, B), a2: (A, B)): (A, B) = (a.op(a1._1, a2._1), b.op(a1._2, a2._2))
+        override def zero: (A, B) = (a.zero, b.zero)
+    }
 
   def foldMap[A, B](as: List[A], m: Monoid[B])(f: A => B): B =
     as.foldLeft(m.zero)((b, a) => m.op(b, f(a)))
