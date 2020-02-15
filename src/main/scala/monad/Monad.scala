@@ -1,6 +1,8 @@
 package monad
 
 import testing.Gen
+import parallelism.Par.Par
+import parallelism.Par
 
 trait Functor[F[_]] {
   def map[A,B](fa: F[A])(f: A => B): F[B]
@@ -24,9 +26,33 @@ trait Monad[F[_]] {
 
 object Monad {
 
-  def genMonad = new Monad[Gen] {
+  val genMonad = new Monad[Gen] {
     def unit[A](a: => A): Gen[A] = Gen.unit(a)
     def flatMap[A, B](fa: Gen[A])(f: A => Gen[B]): Gen[B] =
+      fa.flatMap(f)
+  }
+
+  val parMonad = new Monad[Par] {
+    def unit[A](a: => A): Par[A] = Par.unit(a)
+    def flatMap[A, B](fa: Par[A])(f: A => Par[B]): Par[B] =
+      Par.flatMap(fa)(f)
+  }
+
+  val optionMonad = new Monad[Option] {
+    def unit[A](a: => A): Option[A] = Option(a)
+    def flatMap[A, B](fa: Option[A])(f: A => Option[B]): Option[B] =
+      fa.flatMap(f)
+  }
+
+  val streamMonad = new Monad[Stream] {
+    def unit[A](a: => A): Stream[A] = Stream(a)
+    def flatMap[A, B](fa: Stream[A])(f: A => Stream[B]): Stream[B] =
+      fa.flatMap(f)
+  }
+
+  val listMonad = new Monad[List] {
+    def unit[A](a: => A): List[A] = List(a)
+    def flatMap[A, B](fa: List[A])(f: A => List[B]): List[B] =
       fa.flatMap(f)
   }
 }
