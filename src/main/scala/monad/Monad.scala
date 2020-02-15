@@ -28,6 +28,8 @@ trait Monad[F[_]] extends Functor[F] {
   def sequence[A](fas: List[F[A]]): F[List[A]] =
     fas.foldRight(unit(List[A]()))((fa, fas) => map2(fa, fas)((a, l) => a :: l))
     
+  def traverse[A,B](as: List[A])(f: A => F[B]): F[List[B]] =
+    as.foldRight(unit(List[B]()))((a, lbs) => map2(f(a), lbs)((b, bs) => b :: bs))
 }
 
 object Monad {
