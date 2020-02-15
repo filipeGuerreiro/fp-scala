@@ -3,6 +3,7 @@ package monad
 import testing.Gen
 import parallelism.Par.Par
 import parallelism.Par
+import state.State
 
 trait Functor[F[_]] {
   def map[A,B](fa: F[A])(f: A => B): F[B]
@@ -53,6 +54,12 @@ object Monad {
   val listMonad = new Monad[List] {
     def unit[A](a: => A): List[A] = List(a)
     def flatMap[A, B](fa: List[A])(f: A => List[B]): List[B] =
+      fa.flatMap(f)
+  }
+
+  def stateMonad[S] = new Monad[({type lambda[x] = State[S, x]})#lambda] {
+    def unit[A](a: => A): State[S,A] = State.unit(a)
+    def flatMap[A, B](fa: State[S,A])(f: A => State[S,B]): State[S,B] =
       fa.flatMap(f)
   }
 }
