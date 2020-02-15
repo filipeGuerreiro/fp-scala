@@ -15,14 +15,19 @@ trait Functor[F[_]] {
   }
 }
 
-trait Monad[F[_]] {
+trait Monad[F[_]] extends Functor[F] {
   def unit[A](a: => A): F[A]
   def flatMap[A,B](fa: F[A])(f: A => F[B]): F[B]
 
   def map[A,B](fa: F[A])(f: A => B): F[B] =
     flatMap(fa)(a => unit(f(a)))
+
   def map2[A,B,C](fa: F[A], fb: F[B])(f: (A,B) => C): F[C] =
     flatMap(fa)(a => map(fb)(b => f(a,b)))
+
+  def sequence[A](fas: List[F[A]]): F[List[A]] =
+    fas.foldRight(unit(List[A]()))((fa, fas) => map2(fa, fas)((a, l) => a :: l))
+    
 }
 
 object Monad {
