@@ -30,6 +30,18 @@ trait Monad[F[_]] extends Functor[F] {
     
   def traverse[A,B](as: List[A])(f: A => F[B]): F[List[B]] =
     as.foldRight(unit(List[B]()))((a, lbs) => map2(f(a), lbs)((b, bs) => b :: bs))
+    
+  def replicateN[A](n: Int, ma: F[A]): F[List[A]] =
+    sequence(List.fill(n)(ma))
+
+  def product[A,B](ma: F[A], mb: F[B]): F[(A,B)] =
+    map2(ma, mb)((a,b) => (a,b))
+
+  def filterM[A](ms: List[A])(f: A => F[Boolean]): F[List[A]] =
+    ms.foldRight(unit(List[A]()))((a, acc) => 
+      flatMap(f(a))(b => 
+        if (b) map2(unit(a), acc)((x, xs) => x :: xs)
+        else acc))
 }
 
 object Monad {
