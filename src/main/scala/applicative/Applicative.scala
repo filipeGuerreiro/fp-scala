@@ -28,3 +28,15 @@ trait Applicative[F[_]] extends Functor[F] {
   def map4[A,B,C,D,E](fa: F[A], fb: F[B], fc: F[C], fd: F[D])(f: (A,B,C,D) => E): F[E] =
     apply(apply(apply(map(fa)(f.curried))(fb))(fc))(fd)
 }
+
+trait Monad[F[_]] extends Applicative[F] {
+  def flatMap[A,B](fa: F[A])(f: A => F[B]): F[B] = join(map(fa)(f))
+
+  def join[A](ffa: F[F[A]]): F[A] = flatMap(ffa)(fa => fa)
+
+  def compose[A,B,C](f: A => F[B], g: B => F[C]): A => F[C] = 
+    a => flatMap(f(a))(g)
+
+  override def map[A,B](fa: F[A])(f: A => B): F[B] =
+    flatMap(fa)(a => unit(f(a)))
+}
