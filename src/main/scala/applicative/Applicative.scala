@@ -94,3 +94,20 @@ object Applicative {
         }
     }
 }
+
+trait Traverse[F[_]] {
+  def traverse[G[_]:Applicative,A,B](fa: F[A])(f: A => G[B]): G[F[B]] = sequence(map(fa)(f))
+  def sequence[G[_]:Applicative,A](fga: F[G[A]]): G[F[A]] = traverse(fga)(ga => ga)
+}
+
+case class Tree[+A](head: A, tail: List[Tree[A]])
+
+object Traverse {
+  def optionTraverse = new Traverse[Option] {
+    override def traverse[M[_],A,B](oa: Option[A])(f: A => M[B])(implicit M: Applicative[M]): M[Option[B]] =
+      oa match {
+        case Some(a) => M.map(f(a))(Some(_))
+        case None    => M.unit(None)
+      }
+  }
+}
