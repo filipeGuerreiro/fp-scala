@@ -39,4 +39,35 @@ trait Monad[F[_]] extends Applicative[F] {
 
   override def map[A,B](fa: F[A])(f: A => B): F[B] =
     flatMap(fa)(a => unit(f(a)))
+  
+  def eitherMonad[E]: Monad[({type f[x] = Either[E,x]})#f] = 
+    new Monad[({type f[x] = Either[E, x]})#f] {
+      override def unit[A](a: => A): Either[E,A] = Right(a)
+      override def flatMap[A, B](fa: Either[E,A])(f: A => Either[E,B]): Either[E,B] = 
+        fa match {
+          case Right(a) => f(a)
+          case Left(b) => Left(b)
+        }
+    }
+}
+
+sealed trait Validation[+E, +A]
+
+case class Failure[E](head: E, tail: Vector[E])
+  extends Validation[E, Nothing]
+
+case class Success[A](a: A) extends Validation[Nothing, A]
+
+object Applicative {
+  def validationApplicative[E]: Applicative[({type f[x] = Validation[E,x]})#f] =
+    new Applicative[({type f[x] = Validation[E,x]})#f] {
+      override def unit[A](a: => A): Validation[E,A] = Success(a)
+      override def map2[A,B,C](fa: Validation[E,A], fb: Validation[E,B])(f: (A, B) => C) =
+        (fa, fb) match {
+          case (Success(a), Success(b)) => Success(f(a, b))
+          case (Failure(h1, t1), Failure(h2, t2)) => Failure(h1, t1 ++ Vector(h2) ++ t2)
+          case (e@Failure(_, _), _) => e
+          case (_, e@Failure(_, _)) => e
+        }
+    }
 }
