@@ -1,6 +1,12 @@
 package applicative
 
-import monad.Functor
+
+import monads.Functor
+import state._
+import State._
+import monoids._
+import language.higherKinds
+import language.implicitConversions
 
 trait Applicative[F[_]] extends Functor[F] {
   def apply[A, B](fab: F[A => B])(fa: F[A]): F[B] =
@@ -93,11 +99,49 @@ object Applicative {
           case (_, e@Failure(_, _)) => e
         }
     }
+
+  type Const[A, B] = A
+
+  implicit def monoidApplicative[M](M: Monoid[M]) =
+    new Applicative[({ type f[x] = Const[M, x] })#f] {
+      def unit[A](a: => A): M = M.zero
+      override def apply[A,B](m1: M)(m2: M): M = M.op(m1, m2)
+    }
 }
 
-trait Traverse[F[_]] {
-  def traverse[G[_]:Applicative,A,B](fa: F[A])(f: A => G[B]): G[F[B]] = sequence(map(fa)(f))
-  def sequence[G[_]:Applicative,A](fga: F[G[A]]): G[F[A]] = traverse(fga)(ga => ga)
+trait Traverse[F[_]] extends Functor[F] with Foldable[F] {
+  def traverse[G[_]:Applicative,A,B](fa: F[A])(f: A => G[B])(implicit G: Applicative[G]): G[F[B]] = sequence(map(fa)(f))
+  def sequence[G[_]:Applicative,A](fga: F[G[A]])(implicit G: Applicative[G]): G[F[A]] = traverse(fga)(ga => ga)
+
+  def map[A,B](fa: F[A])(f: A => B): F[B] = traverse(fa)(f)(new Monad[Id] {
+    def unit[A](a: => A) = a
+    override def flatMap[A,B](a: A)(f: A => B): B = f(a)
+  })
+
+  import Applicative._
+  override def foldMap[A,B](as: F[A])(f: A => B)(mb: Monoid[B]): B =
+    traverse[({type f[x] = Const[B,x]})#f,A,Nothing](
+      as)(f)(monoidApplicative(mb))
+
+  // Traversables are very useful for the state monad
+  def traverseS[S,A,B](fa: F[A])(f: A => State[S, B]): State[S, F[B]] =
+    traverse[({type f[x] = State[S, x]})#f, A, B](fa)(f)(Monad.stateMonad)
+
+  def mapAccum[S,A,B](fa: F[A], s: S)(f: (A, S) => (B, S)): (F[B], S) =
+    traverseS(fa)((a: A) => (for {
+      s1 <- get[S]
+      (b, s2) = f(a, s1)
+      _  <- set(s2)
+    } yield b)).run(s)
+
+  override def toList[A](fa: F[A]): List[A] =
+    mapAccum(fa, List[A]())((a, s) => ((), a :: s))._2.reverse
+
+  def zipWithIndex[A](fa: F[A]): F[(A, Int)] =
+    mapAccum(fa, 0)((a, s) => ((a, s), s + 1))._1
+
+  def reverse[A](fa: F[A]): F[A] =
+    mapAccum(fa, toList(fa).reverse)((_, s) => (s.head,s.tail))._1
 }
 
 case class Tree[+A](head: A, tail: List[Tree[A]])
