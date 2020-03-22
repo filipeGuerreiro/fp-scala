@@ -110,4 +110,14 @@ object Traverse {
         case None    => M.unit(None)
       }
   }
+
+  def listTraverse = new Traverse[List] {
+    override def traverse[M[_],A,B](as: List[A])(f: A => M[B])(implicit M: Applicative[M]): M[List[B]] =
+      as.foldRight(M.unit(List[B]()))((a, fbs) => M.map2(f(a), fbs)(_ :: _))
+  }
+
+  def treeTraverse = new Traverse[Tree] {
+    override def traverse[M[_],A,B](ta: Tree[A])(f: A => M[B])(implicit M: Applicative[M]): M[Tree[B]] =
+      M.map2(f(ta.head), listTraverse.traverse(ta.tail)((t) => traverse(t)(f)))((h,ts) => Tree(h,ts))
+  }
 }
