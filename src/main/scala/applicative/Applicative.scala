@@ -1,10 +1,9 @@
 package applicative
 
-
-import monads.Functor
+import monad.Functor
 import state._
 import State._
-import monoids._
+import monoid._
 import language.higherKinds
 import language.implicitConversions
 
@@ -110,8 +109,8 @@ object Applicative {
 }
 
 trait Traverse[F[_]] extends Functor[F] with Foldable[F] {
-  def traverse[G[_]:Applicative,A,B](fa: F[A])(f: A => G[B])(implicit G: Applicative[G]): G[F[B]] = sequence(map(fa)(f))
-  def sequence[G[_]:Applicative,A](fga: F[G[A]])(implicit G: Applicative[G]): G[F[A]] = traverse(fga)(ga => ga)
+  def traverse[M[_]:Applicative,A,B](fa: F[A])(f: A => M[B]): M[F[B]] = sequence(map(fa)(f))
+  def sequence[M[_]:Applicative,A](fma: F[M[A]]): M[F[A]] = traverse(fma)(ma => ma)
 
   def map[A,B](fa: F[A])(f: A => B): F[B] = traverse(fa)(f)(new Monad[Id] {
     def unit[A](a: => A) = a
@@ -142,6 +141,10 @@ trait Traverse[F[_]] extends Functor[F] with Foldable[F] {
 
   def reverse[A](fa: F[A]): F[A] =
     mapAccum(fa, toList(fa).reverse)((_, s) => (s.head,s.tail))._1
+
+  def fuse[M[_],N[_],A,B](fa: F[A])(f: A => M[B], g: A => N[B])
+                         (implicit M: Applicative[M], N: Applicative[N]): (M[F[B]], N[F[B]]) =
+    traverse(fa)(a => (f(a), g(a)))(M product N)
 }
 
 case class Tree[+A](head: A, tail: List[Tree[A]])
