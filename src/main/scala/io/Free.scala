@@ -30,4 +30,20 @@ object Free {
             case FlatMap(s0, g) => runTrampoline(s0.flatMap(s0 => g(s0).flatMap(f)))
         }
     }
+
+    @tailrec
+    def step[F[_],A](a: Free[F,A]): Free[F,A] = a match {
+        case FlatMap(FlatMap(x,f), g) => step(x flatMap(a => f(a).flatMap(g)))
+        case FlatMap(Return(x), f) => step(f(x))
+        case _ => a
+    }
+
+    def run[F[_],A](a: Free[F,A])(implicit F: Monad[F]): F[A] = a match {
+        case Return(a) => F.unit(a)
+        case Suspend(s) => s
+        case FlatMap(s, f) => s match {
+            case Suspend(r) => F.flatMap(r)(a => run(f(a)))
+            case _ => sys.error("Impossible; `step` eliminates these cases")
+        }
+    }
 }
