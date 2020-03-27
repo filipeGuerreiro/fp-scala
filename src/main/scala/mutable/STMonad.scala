@@ -127,3 +127,25 @@ object Immutable {
       } yield sorted
   })
 }
+
+import scala.collection.mutable.HashMap
+sealed abstract class STMap[S,K,V] {
+  protected def table: HashMap[K,V]
+  def size: ST[S,Int] = ST(table.size)
+
+  def get(k: K): ST[S,Option[V]] = ST(table.get(k))
+
+  def +=(k: K, v: V): ST[S,Unit] = new ST[S,Unit] {
+    def run(s: S) = {
+      table.put(k, v)
+      ((), s)
+    }
+  }
+
+  def -=(k: K): ST[S,Unit] = new ST[S,Unit] {
+    def run(s: S) = {
+      table.remove(k)
+      ((), s)
+    }
+  }
+}
