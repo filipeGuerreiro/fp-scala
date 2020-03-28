@@ -76,4 +76,10 @@ object Process {
         await(i => 
             if (f(i)) dropWhile(f)
             else      Halt())
+
+    def count[I]: Process[I,Int] = {
+        def go(n: Int): Process[I,Int] =
+            await(_ => emit(n+1, go(n+1)))
+        go(0)
+    }
 }
