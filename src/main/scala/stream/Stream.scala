@@ -1,4 +1,4 @@
-package streams
+package stream
 
 sealed trait Process[I,O] {
     def apply(s: Stream[I]): Stream[O] = this match {
@@ -21,6 +21,9 @@ sealed trait Process[I,O] {
       }
       go(this)
     }
+
+    def |>[O2](p2: Process[O,O2]): Process[I,O2] = ???
+      
 }
 
 case class Emit[I,O](
