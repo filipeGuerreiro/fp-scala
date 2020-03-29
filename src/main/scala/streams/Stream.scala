@@ -82,4 +82,18 @@ object Process {
             await(_ => emit(n+1, go(n+1)))
         go(0)
     }
+
+    def mean: Process[Double,Double] = {
+      def go(sum: Double, count: Int): Process[Double,Double] =
+        await((d: Double) => emit((sum+d) / (count+1), go(sum+d,count+1)))
+      go(0.0, 0)
+    }
+
+    def loop[S,I,O](z: S)(f: (I,S) => (O,S)): Process[I,O] =
+      await((i: I) => f(i,z) match {
+        case (o,s2) => emit(o, loop(s2)(f))
+      })
+
+    def sumV2: Process[Double,Double] =
+      loop(0.0)((i, acc) => (acc + i, acc + i))
 }
