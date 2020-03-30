@@ -120,13 +120,31 @@ object StreamTransducer {
 }
 
 object GeneralizedStreamTransducer {
-  trait Process[F, A]
+  trait Process[F[_], O] {
+    def onHalt(f: Throwable => Process[F,O]): Process[F,O] = this match {
+      case Halt(e) => Try(f(e))
+      case Emit(h, t) => Emit(h, t.onHalt(f))
+      case Await(req, recv) => Await(req, recv andThen (_.onHalt(f)))
+    }
+
+    def ++(p: => Process[F,O]): Process[F,O] =
+      this.onHalt {
+        case End => Try(p)
+        case err => Halt(err)
+      }
+  }
 
   case class Await[F[_], A, O](
-      req: F[A],
-      recv: Either[Throwable, A] => Process[F[_], O]
-  ) extends Process[F[_], O]
-  case class Halt[F[_], O](err: Throwable) extends Process[F[_], O]
-  case class Emit[F[_], O](head: O, tail: Process[F[_], O])
-      extends Process[F[_], O]
+    req: F[A], 
+    recv: Either[Throwable, A] => Process[F, O]) extends Process[F, O]
+  case class Halt[F[_], O](err: Throwable) extends Process[F, O]
+  case class Emit[F[_], O](head: O, tail: Process[F, O])
+      extends Process[F, O]
+
+  case object End extends Exception
+  case object Kill extends Exception
+
+  def Try[F[_],O](p: => Process[F,O]): Process[F,O] =
+      try p
+      catch { case e: Throwable => Halt(e) }
 }
